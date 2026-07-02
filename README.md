@@ -8,4 +8,4 @@
 
 > Which repo has the processed dataset?
 
-You can find the preprocessed data in the [prevalence-data]() repo.
+You can find the preprocessed data in the [prevalence-data](https://github.com/8ta4/prevalence-data) repo.
