@@ -1,5 +1,16 @@
 /wiktionary.tsv
-/clj/data/
-/clj/.cpcache/
-/clj/target/
-/.nrepl-port
+
+# Devenv
+.devenv*
+devenv.local.nix
+devenv.local.yaml
+
+# direnv
+.direnv
+
+# pre-commit
+.pre-commit-config.yaml
+
+# Stack
+.stack-work/
+*~
