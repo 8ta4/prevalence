@@ -9,6 +9,7 @@ What `DONTREADME.md` requires: one row per phrase, a `lemma` boolean taken from 
 ## Language: Haskell
 
 I picked Haskell because it matches `mean`:
+
 - I can copy `mean`'s Wiktextract handling as-is: `parts` download with SHA-256 checks, gunzip of the concatenated parts, and `isEnglish` (`lang == "English"`) on the `word` field. That way the phrase keys match `mean.json` exactly.
 - It uses the same toolchain as `mean`: devenv, stack, the same LTS 24.52 snapshot, relude, aeson, and lens-aeson.
 
@@ -21,9 +22,10 @@ I picked Haskell because it matches `mean`:
 ## Output: `wiktionary.tsv` (repo root, already gitignored)
 
 Header: `entry	prevalence	lemma	space`
+
 - `entry`: a phrase key from `mean.json`.
 - `prevalence`: the **max** score across that phrase's glosses.
-- `lemma`: `true` iff any English Wiktextract record whose `word` equals `entry` has `"English lemmas"` in its entry-level `categories`. Sense-level `categories` are ignored. Wiktextract has one record per part of speech or etymology, so a phrase can match several records. The phrase is a lemma if **any** matching record has the tag. For example, `left` is `true` because its adjective record has the tag, even though its verb record does not.
+- `lemma`: `true` iff any English Wiktextract record whose `word` equals `entry` has `"English lemmas"` in its entry-level `categories` or in any sense's `categories`. Some records carry the tag only at sense level; for example, `phone number` and `phone call` have no entry-level categories, and the tag appears only on a sense. Wiktextract has one record per part of speech or etymology, so a phrase can match several records. The phrase is a lemma if **any** matching record has the tag. For example, `left` is `true` because its adjective record has the tag, even though its verb record does not.
 - `space`: `true` iff `entry` contains an ASCII space.
 - Sort by prevalence descending, then entry ascending.
 - TSV escaping: if a field contains `"`, a tab, `\n` or `\r`, wrap it in quotes and double any inner `"` (the same rule as the old `escape-tsv-field`).
@@ -34,6 +36,7 @@ Header: `entry	prevalence	lemma	space`
 Delete: `clj/` (all of it) and `PLAN.md`.
 
 Add, modeled on `~/dev/mean`:
+
 - `package.yaml`: copy `mean`'s dependency and ghc-options style. Deps: base, relude, aeson, lens, lens-aeson, bytestring, base16-bytestring, cryptohash, zlib, containers, directory, filepath, process. Use the `zstd` package if it is in the snapshot. Otherwise shell out to the `zstd` CLI and add `pkgs.zstd` to devenv.
 - `stack.yaml`: the same snapshot URL as `mean`.
 - `app/Main.hs`:
@@ -41,7 +44,7 @@ Add, modeled on `~/dev/mean`:
   - `scanWiktextract`: lazily stream the gunzipped dump with `Char8.lines` and `decode`. Keep only `isEnglish` records whose `word` is in the scores map. Fold into `Map Text Bool` (the lemma flags) with `insertWith (||)`.
   - Pure functions, exported so tests can use them: `isLemma :: Value -> Bool`, `toRow`, `compareRows`, `escapeField`, `renderTsv`.
 - `test/Spec.hs`: an hspec suite for the pure functions:
-  - entry-level lemma, the non-lemma case, and a record with `"English lemmas"` only at sense level (expect `false`)
+  - entry-level lemma, the non-lemma case, and a record with `"English lemmas"` only at sense level (expect `true`)
   - the space flag
   - max across glosses
   - OR across duplicate records
@@ -59,5 +62,5 @@ Add, modeled on `~/dev/mean`:
    - The row count equals the number of `mean.json` keys (`zstd -dc mean.json.zst | jq 'length'`).
    - There are no duplicate entries (`cut -f1 | sort | uniq -d`).
    - The stderr missing count is 0.
-   - Spot checks: `touchstone` shows about 45.53; `phone number` shows `space=true`; `$100 hamburgers` shows `lemma=false`.
+   - Spot checks: `touchstone` shows about 45.53; `phone number` shows `space=true`; `$100 hamburgers` shows `lemma=false`; `phone number` and `phone call` show `lemma=true`.
 4. Compare the top rows against the old `~/dev/prevalence-data/wiktionary.tsv` to check they're broadly plausible.
