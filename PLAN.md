@@ -13,7 +13,7 @@
 
 - Gloss casing varies. Examples: `Misspelling of $h!tted.`, `plural of $2 shop`, `Used other than figuratively or idiomatically: see hamburger.` That means matching **must be case-insensitive**: lowercase the gloss with `Text.toLower`, then test it with `Text.isInfixOf` against the lowercase strings from `DONTREADME.md`.
 - Substring matching also catches combined glosses. For example, `simple past and past participle of leave (…)` matches through `past participle of`, which is the intended behavior.
-- There are 1,385,122 entries before filtering and **832,676** after (I checked this with jq using the same rule).
+- There are 1,385,122 entries before filtering and **782,830** after (counted from the `stack run` output).
 
 ## Inputs (pinned to mean-data commit `0a69fe730a0ea1bfaef84eba0dbe0f68ce991683`)
 
@@ -62,7 +62,7 @@ Header: `entry	prevalence	space`
 
 1. `stack test` passes.
 2. `stack run` produces `wiktionary.tsv` without downloading the Wiktextract dump.
-3. The header is exactly `entry	prevalence	space`. There are 832,676 data rows and no duplicate entries.
+3. The header is exactly `entry	prevalence	space`. There are 782,830 data rows and no duplicate entries.
 4. Spot checks:
    - `touchstone` is about 45.53.
    - `left` is about 99.81.

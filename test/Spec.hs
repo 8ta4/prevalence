@@ -35,6 +35,9 @@ main = hspec $ do
     it "drops inflected forms"
       $ isKept "plural of $2 shop"
       `shouldBe` False
+    it "drops third-person singular forms"
+      $ isKept "third-person singular simple present indicative of run"
+      `shouldBe` False
     it "matches case-insensitively"
       $ isKept "Misspelling of x."
       `shouldBe` False

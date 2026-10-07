@@ -81,7 +81,7 @@ blockedPhrases =
     "present participle and gerund of",
     "present participle of",
     "simple past of",
-    "third-person singular simple present indicative form of"
+    "third-person singular simple present indicative of"
   ]
 
 isKept :: Text -> Bool
