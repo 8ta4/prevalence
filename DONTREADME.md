@@ -60,4 +60,4 @@ Inflected forms bloat your list. You could deal with irregular inflections by us
 - `present participle and gerund of`
 - `present participle of`
 - `simple past of`
-- `third-person singular simple present indicative form of`
+- `third-person singular simple present indicative of`
