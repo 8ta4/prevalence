@@ -54,10 +54,11 @@ When a phrase is merely the sum of its parts, there's no need to review it on it
 - `used other than figuratively or idiomatically`
 
 Inflected forms bloat your list. You could deal with irregular inflections by using a dedicated reference list that's separate from this dataset. `prevalence` drops glosses containing any of the following strings:
+- `comparative form of`
 - `gerund of`
 - `past participle of`
 - `plural of`
-- `present participle and gerund of`
 - `present participle of`
 - `simple past of`
+- `superlative form of`
 - `third-person singular simple present indicative of`
