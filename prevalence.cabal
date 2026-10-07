@@ -71,11 +71,8 @@ executable prevalence
     , cryptohash
     , directory
     , filepath
-    , lens
-    , lens-aeson
     , process
     , relude
-    , zlib
     , zstd
   default-language: Haskell2010
 
@@ -133,10 +130,7 @@ test-suite spec
     , directory
     , filepath
     , hspec
-    , lens
-    , lens-aeson
     , process
     , relude
-    , zlib
     , zstd
   default-language: Haskell2010

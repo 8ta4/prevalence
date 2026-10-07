@@ -27,11 +27,8 @@ dependencies:
   - cryptohash
   - directory
   - filepath
-  - lens-aeson
-  - lens
   - process
   - relude
-  - zlib
   - zstd
 
 ghc-options:
