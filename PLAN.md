@@ -1,66 +1,70 @@
-# Generate `wiktionary.tsv` from `mean-data`
+# Drop `lemma` and filter glosses before scoring
 
 ## Context
 
-`prevalence` publishes `wiktionary.tsv` (to the prevalence-data repo). The current generator (`clj/`, `PLAN.md`) is built on `pun` / `pun-data` and is outdated. The scores now come from `mean`, which scores each (phrase, gloss) pair separately, so `mean-data` replaces `pun-data`. Keep `README.md` and `DONTREADME.md`. Replace everything else.
+`DONTREADME.md` (commit 3829eb9) replaced the lemma FAQ with a gloss filtering requirement:
 
-What `DONTREADME.md` requires: one row per phrase, a `lemma` boolean taken from Wiktionary metadata (no NLP lemmatizer), a `space` boolean, and no entries dropped.
+- Remove the `lemma` column.
+- Before computing prevalence, drop every gloss that contains any of the listed strings. If an entry has no glosses left, drop the entry.
 
-## Language: Haskell
+`app/Main.hs` downloads and scans the Wiktextract dump only to get the `lemma` flag (and to log a count of missing records to stderr). With `lemma` gone, that whole path goes away. The pipeline becomes: download `mean.json.zst`, filter glosses, take the max, and write the TSV.
 
-I picked Haskell because it matches `mean`:
+## Data facts (from `~/.local/state/prevalence/mean.json.zst`)
 
-- I can copy `mean`'s Wiktextract handling as-is: `parts` download with SHA-256 checks, gunzip of the concatenated parts, and `isEnglish` (`lang == "English"`) on the `word` field. That way the phrase keys match `mean.json` exactly.
-- It uses the same toolchain as `mean`: devenv, stack, the same LTS 24.52 snapshot, relude, aeson, and lens-aeson.
+- Gloss casing varies. Examples: `Misspelling of $h!tted.`, `plural of $2 shop`, `Used other than figuratively or idiomatically: see hamburger.` That means matching **must be case-insensitive**: lowercase the gloss with `Text.toLower`, then test it with `Text.isInfixOf` against the lowercase strings from `DONTREADME.md`.
+- Substring matching also catches combined glosses. For example, `simple past and past participle of leave (…)` matches through `past participle of`, which is the intended behavior.
+- There are 1,385,122 entries before filtering and **832,676** after (I checked this with jq using the same rule).
 
 ## Inputs (pinned to mean-data commit `0a69fe730a0ea1bfaef84eba0dbe0f68ce991683`)
 
-- `https://raw.githubusercontent.com/8ta4/mean-data/<commit>/manifest.json`: read `parts` (URL and sha256) from it, so the dump is the same snapshot that `mean` scored.
-- `https://raw.githubusercontent.com/8ta4/mean-data/<commit>/mean.json.zst` (34 MB). Its shape is `{phrase: {gloss: score}}`.
-- Cache downloads in `~/.local/state/prevalence/`, the same way `mean` caches in `~/.local/state/mean`. Use `wget -c` and skip any file that already passes its hash check.
+- `https://raw.githubusercontent.com/8ta4/mean-data/<commit>/mean.json.zst`, with shape `{phrase: {gloss: score}}`. It is cached in `~/.local/state/prevalence/` and checked against its SHA-256 hash, as it is now.
+- The pipeline no longer needs `manifest.json` or the Wiktextract `parts`. Leave the existing cache on disk alone.
 
-## Output: `wiktionary.tsv` (repo root, already gitignored)
+## Output: `wiktionary.tsv`
 
-Header: `entry	prevalence	lemma	space`
+Header: `entry	prevalence	space`
 
-- `entry`: a phrase key from `mean.json`.
-- `prevalence`: the **max** score across that phrase's glosses.
-- `lemma`: `true` iff any English Wiktextract record whose `word` equals `entry` has `"English lemmas"` in its entry-level `categories` or in any sense's `categories`. Some records carry the tag only at sense level; for example, `phone number` and `phone call` have no entry-level categories, and the tag appears only on a sense. Wiktextract has one record per part of speech or etymology, so a phrase can match several records. The phrase is a lemma if **any** matching record has the tag. For example, `left` is `true` because its adjective record has the tag, even though its verb record does not.
+- `entry`: a phrase key from `mean.json` that still has at least one gloss after filtering.
+- `prevalence`: the **max** score across the phrase's remaining glosses.
 - `space`: `true` iff `entry` contains an ASCII space.
-- Sort by prevalence descending, then entry ascending.
-- TSV escaping: if a field contains `"`, a tab, `\n` or `\r`, wrap it in quotes and double any inner `"` (the same rule as the old `escape-tsv-field`).
-- Every phrase in `mean.json` gets a row. If a phrase has no matching Wiktextract record, it gets `lemma=false`. Log the count of such phrases and a sample of 20 to stderr. This should be 0.
+- Sort by prevalence descending, then by entry ascending.
+- TSV escaping stays the same.
 
-## Files
+## Changes
 
-Delete: `clj/` (all of it) and `PLAN.md`.
+### `app/Main.hs`
 
-Add, modeled on `~/dev/mean`:
+- `Row`: remove `lemma`.
+- Add `blockedPhrases :: [Text]`: the 21 strings from `DONTREADME.md`, in the same order.
+- Add `isKept :: Text -> Bool`: no entry in `blockedPhrases` is an infix of `Text.toLower gloss`.
+- Add `filterGlosses :: Scores -> Scores`: keep only the glosses that pass `isKept`, then drop phrases whose gloss map is empty.
+- `buildRows :: Scores -> [Row]`: `sortBy compareRows . fmap toRow . Map.toList . filterGlosses`.
+- `toRow :: (Text, Map Text Double) -> Row`: drop the lemmas argument.
+- `renderTsv`: drop the `lemma` header and field.
+- `main`: download only `mean.json.zst`, then write the TSV.
+- Delete `Manifest`, `manifestHash`, `scanWiktextract`, `isEnglish`, `isLemma`, the missing-record logging, and the imports that become unused. `-Weverything` flags any that are left.
 
-- `package.yaml`: copy `mean`'s dependency and ghc-options style. Deps: base, relude, aeson, lens, lens-aeson, bytestring, base16-bytestring, cryptohash, zlib, containers, directory, filepath, process. Use the `zstd` package if it is in the snapshot. Otherwise shell out to the `zstd` CLI and add `pkgs.zstd` to devenv.
-- `stack.yaml`: the same snapshot URL as `mean`.
-- `app/Main.hs`:
-  - `main`: ensure inputs, then `loadScores`, then `scanWiktextract`, then `buildRows`, then write the TSV.
-  - `scanWiktextract`: lazily stream the gunzipped dump with `Char8.lines` and `decode`. Keep only `isEnglish` records whose `word` is in the scores map. Fold into `Map Text Bool` (the lemma flags) with `insertWith (||)`.
-  - Pure functions, exported so tests can use them: `isLemma :: Value -> Bool`, `toRow`, `compareRows`, `escapeField`, `renderTsv`.
-- `test/Spec.hs`: an hspec suite for the pure functions:
-  - entry-level lemma, the non-lemma case, and a record with `"English lemmas"` only at sense level (expect `true`)
-  - the space flag
-  - max across glosses
-  - OR across duplicate records
-  - sort order
-  - escaping
-- `devenv.nix`, `devenv.yaml`, `devenv.lock`, `Brewfile`: copy from `mean`. Change the scripts to `prevalence` (`stack run`) and `test-watch`.
-- `.gitignore`: drop the `clj/` lines. Add `.stack-work/`, the devenv ignores, and keep `/wiktionary.tsv`.
+### `package.yaml`
+
+- Remove the deps that are now unused: `zlib`, `lens`, `lens-aeson`.
+
+### `test/Spec.hs`
+
+- Remove the `isLemma` and `scanWiktextract` specs and their helpers.
+- `toRow`: remove the lemma test and update the call sites.
+- `isKept`: one case per group in `DONTREADME.md`, plus a plain gloss that is kept, plus a mixed-case match (`Misspelling of x.`).
+- `buildRows`:
+  - The max ignores blocked glosses, even when a blocked gloss scores higher.
+  - An entry whose glosses are all blocked is dropped.
+- `renderTsv`: expect `entry\tprevalence\tspace\nphone number\t99.5\ttrue\n`.
 
 ## Verification
 
-1. Run `stack test` and confirm the unit tests pass.
-2. Run `stack run` (or `prevalence` in devenv) and confirm it produces `wiktionary.tsv`.
-3. Sanity-check the output:
-   - The header is exact.
-   - The row count equals the number of `mean.json` keys (`zstd -dc mean.json.zst | jq 'length'`).
-   - There are no duplicate entries (`cut -f1 | sort | uniq -d`).
-   - The stderr missing count is 0.
-   - Spot checks: `touchstone` shows about 45.53; `phone number` shows `space=true`; `$100 hamburgers` shows `lemma=false`; `phone number` and `phone call` show `lemma=true`.
-4. Compare the top rows against the old `~/dev/prevalence-data/wiktionary.tsv` to check they're broadly plausible.
+1. `stack test` passes.
+2. `stack run` produces `wiktionary.tsv` without downloading the Wiktextract dump.
+3. The header is exactly `entry	prevalence	space`. There are 832,676 data rows and no duplicate entries.
+4. Spot checks:
+   - `touchstone` is about 45.53.
+   - `left` is about 99.81.
+   - `$100 hamburgers` is absent, because its only gloss is a `plural of`.
+   - `phone number` has `space=true`.
