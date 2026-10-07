@@ -38,6 +38,15 @@ main = hspec $ do
     it "drops third-person singular forms"
       $ isKept "third-person singular simple present indicative of run"
       `shouldBe` False
+    it "drops comparative forms"
+      $ isKept "comparative form of big"
+      `shouldBe` False
+    it "drops superlative forms"
+      $ isKept "superlative form of big"
+      `shouldBe` False
+    it "drops combined present participle and gerund forms"
+      $ isKept "present participle and gerund of run"
+      `shouldBe` False
     it "matches case-insensitively"
       $ isKept "Misspelling of x."
       `shouldBe` False
