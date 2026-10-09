@@ -75,12 +75,13 @@ blockedPhrases =
     "pronunciation spelling of",
     "only used in",
     "used other than figuratively or idiomatically",
+    "comparative form of",
     "gerund of",
     "past participle of",
     "plural of",
-    "present participle and gerund of",
     "present participle of",
     "simple past of",
+    "superlative form of",
     "third-person singular simple present indicative of"
   ]
 
