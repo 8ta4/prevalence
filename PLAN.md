@@ -13,7 +13,7 @@
 
 - Gloss casing varies. Examples: `Misspelling of $h!tted.`, `plural of $2 shop`, `Used other than figuratively or idiomatically: see hamburger.` That means matching **must be case-insensitive**: lowercase the gloss with `Text.toLower`, then test it with `Text.isInfixOf` against the lowercase strings from `DONTREADME.md`.
 - Substring matching also catches combined glosses. For example, `simple past and past participle of leave (…)` matches through `past participle of`, which is the intended behavior.
-- There are 1,385,122 entries before filtering and **776,713** after (counted from the `stack run` output).
+- There are 1,385,122 entries before filtering and **776,466** after (counted from the `stack run` output).
 
 ## Inputs (pinned to mean-data commit `0a69fe730a0ea1bfaef84eba0dbe0f68ce991683`)
 
@@ -35,7 +35,7 @@ Header: `entry	prevalence	space`
 ### `app/Main.hs`
 
 - `Row`: remove `lemma`.
-- Add `blockedPhrases :: [Text]`: the 22 strings from `DONTREADME.md`, in the same order.
+- Add `blockedPhrases :: [Text]`: the 25 strings from `DONTREADME.md`, in the same order.
 - Add `isKept :: Text -> Bool`: no entry in `blockedPhrases` is an infix of `Text.toLower gloss`.
 - Add `filterGlosses :: Scores -> Scores`: keep only the glosses that pass `isKept`, then drop phrases whose gloss map is empty.
 - `buildRows :: Scores -> [Row]`: `sortBy compareRows . fmap toRow . Map.toList . filterGlosses`.
@@ -62,7 +62,7 @@ Header: `entry	prevalence	space`
 
 1. `stack test` passes.
 2. `stack run` produces `wiktionary.tsv` without downloading the Wiktextract dump.
-3. The header is exactly `entry	prevalence	space`. There are 776,713 data rows and no duplicate entries.
+3. The header is exactly `entry	prevalence	space`. There are 776,466 data rows and no duplicate entries.
 4. Spot checks:
    - `touchstone` is about 45.53.
    - `left` is about 99.81.
