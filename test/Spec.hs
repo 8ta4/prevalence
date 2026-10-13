@@ -26,6 +26,12 @@ main = hspec $ do
     it "drops weird forms"
       $ isKept "alternative spelling of colour"
       `shouldBe` False
+    it "drops archaic American forms"
+      $ isKept "archaic American form of colour"
+      `shouldBe` False
+    it "drops dated forms"
+      $ isKept "dated form of connexion"
+      `shouldBe` False
     it "drops censored spellings"
       $ isKept "censored spelling of fuck"
       `shouldBe` False
