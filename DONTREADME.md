@@ -37,9 +37,11 @@ Reviewing weird forms just pulls your attention away. `prevalence` removes any g
 - `alternative form of`
 - `alternative letter-case form of`
 - `alternative spelling of`
+- `archaic american form of`
 - `archaic form of`
 - `archaic spelling of`
 - `censored spelling of`
+- `dated form of`
 - `elongated form of`
 - `eye dialect spelling of`
 - `informal spelling of`
